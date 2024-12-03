@@ -50,7 +50,7 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
                 'm' => {
                     if !buffer_active {
                         buffer_active = true;
-                    } else if buffer_active {
+                    } else {
                         buffer.clear();
                     }
                 }
@@ -116,8 +116,8 @@ fn part2<R: BufRead>(reader: R) -> Result<usize> {
             match char {
                 'm' => {
                     if !mull_buffer_active {
-                        mull_buffer_active = true;
-                    } else if mull_buffer_active {
+                        mull_buffer_active = do_multiplication;
+                    } else {
                         mull_buffer.clear();
                     }
                 }
@@ -125,7 +125,7 @@ fn part2<R: BufRead>(reader: R) -> Result<usize> {
                 'd' => {
                     if !do_or_dont_buffer_active {
                         do_or_dont_buffer_active = true;
-                    } else if do_or_dont_buffer_active {
+                    } else {
                         do_or_dont_buffer.clear();
                     }
                 }
