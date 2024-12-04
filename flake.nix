@@ -91,6 +91,9 @@
               packageOverrides = {
                 inherit (rust) rustfmt cargo;
               };
+              excludes = [
+                "4.rs"
+              ];
             };
           };
         };
