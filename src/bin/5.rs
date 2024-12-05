@@ -52,11 +52,11 @@ fn main() -> Result<()> {
     //endregion
 
     //region Part 2
-    //println!("\n=== Part 2 ===");
-    //assert_eq!(9, part2(BufReader::new(TEST.as_bytes()))?);
-    //let input_file = BufReader::new(File::open(INPUT_FILE)?);
-    //let result = time_snippet!(part2(input_file)?);
-    //println!("Result = {}", result);
+    println!("\n=== Part 2 ===");
+    assert_eq!(123, part2(BufReader::new(TEST.as_bytes()))?);
+    let input_file = BufReader::new(File::open(INPUT_FILE)?);
+    let result = time_snippet!(part2(input_file)?);
+    println!("Result = {}", result);
     //endregion
 
     Ok(())
@@ -84,6 +84,43 @@ impl BeforeAndAfter {
 
     fn new(befores: Option<Vec<usize>>, afters: Option<Vec<usize>>) -> Self {
         Self { befores, afters }
+    }
+
+    fn prune(&self, vector: &[usize]) -> Self {
+        let mut final_befores = None;
+        let mut final_afters = None;
+
+        if let Some(befores) = &self.befores {
+            let mut new_befores = Vec::new();
+            for element in befores {
+                if vector.contains(element) {
+                    new_befores.push(*element);
+                }
+            }
+
+            final_befores = if new_befores.is_empty() {
+                None
+            } else {
+                Some(new_befores)
+            };
+        }
+
+        if let Some(afters) = &self.afters {
+            let mut new_afters = Vec::new();
+            for element in afters {
+                if vector.contains(element) {
+                    new_afters.push(*element);
+                }
+            }
+
+            final_afters = if new_afters.is_empty() {
+                None
+            } else {
+                Some(new_afters)
+            };
+        }
+
+        Self::new(final_befores, final_afters)
     }
 }
 
@@ -123,7 +160,7 @@ fn display_rules(rules: &HashMap<usize, BeforeAndAfter>) {
         let BeforeAndAfter { befores, afters } = before_after;
 
         println!("value: {entry}");
-        println!("Before: {befores:?}");
+        println!("Befores: {befores:?}");
         println!("Afters: {afters:?}");
     });
 }
@@ -204,5 +241,84 @@ fn process_rules(rules: &mut HashMap<usize, BeforeAndAfter>, data1: usize, data2
 }
 
 fn part2<R: BufRead>(reader: R) -> Result<usize> {
-    todo!()
+    let mut rules: HashMap<usize, BeforeAndAfter> = HashMap::new();
+    let mut answer = 0;
+
+    for line in reader.lines() {
+        let line = line?;
+        if let Some((data1, data2)) = line.split_once('|') {
+            let (data1, data2): (usize, usize) = (data1.parse()?, data2.parse()?);
+            process_rules(&mut rules, data1, data2);
+            continue;
+        }
+
+        if line.is_empty() {
+            continue;
+        }
+
+        // here the processing of the comma seperated values start
+        let vector: Vec<usize> = line
+            .split(',')
+            .map(|x| x.parse::<usize>().unwrap())
+            .collect();
+
+        let None = process_vector(&rules, &vector) else {
+            continue;
+        };
+
+        let mut vector = vector;
+        rearrange_vector(&rules, &mut vector);
+        if let Some(middle) = process_vector(&rules, &vector) {
+            answer += middle;
+        } else {
+            panic!("Failed to arrange Vectors")
+        }
+    }
+
+    //display_rules(rules);
+    Ok(answer)
+}
+
+fn rearrange_vector(rules: &HashMap<usize, BeforeAndAfter>, vector: &mut Vec<usize>) {
+    let mut local_rules: HashMap<usize, BeforeAndAfter> = HashMap::new();
+    vector.iter().for_each(|x| {
+        if let Some(before_after) = rules.get(x) {
+            local_rules.insert(*x, before_after.prune(vector));
+        }
+    });
+
+    let mut resulting_vector: Vec<usize> = Vec::new();
+
+    while !vector.is_empty() {
+        let mut remove_element: Option<usize> = None;
+        for (index, element) in vector.iter().enumerate() {
+            if let Some(BeforeAndAfter { befores, afters: _ }) = local_rules.get(element) {
+                match befores {
+                    None => {
+                        resulting_vector.push(*element);
+                        remove_element = Some(index);
+                        break;
+                    }
+                    Some(befores) => {
+                        if befores
+                            .iter()
+                            .take_while(|x| resulting_vector.contains(x))
+                            .count()
+                            == befores.len()
+                        {
+                            resulting_vector.push(*element);
+                            remove_element = Some(index);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(index) = remove_element {
+            vector.remove(index);
+        }
+    }
+
+    //println!("{resulting_vector:?}");
+    *vector = resulting_vector;
 }
