@@ -69,8 +69,7 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
 }
 
 fn part2<R: BufRead>(reader: R) -> Result<usize> {
-    let mut map: HashMap<usize, usize> = HashMap::new();
-    let mut first_numbers: Vec<usize> = Vec::new();
+    let mut map: HashMap<usize, (usize, usize)> = HashMap::new();
 
     for line in reader.lines() {
         let line = line?;
@@ -78,13 +77,15 @@ fn part2<R: BufRead>(reader: R) -> Result<usize> {
         let (first, second): (usize, usize) = (first.parse()?, second.trim().parse()?);
 
         map.entry(second)
-            .and_modify(|count| *count += 1)
-            .or_insert(1);
-        first_numbers.push(first);
+            .and_modify(|count| count.1 += 1)
+            .or_insert((0, 1));
+        map.entry(first)
+            .and_modify(|count| count.0 += 1)
+            .or_insert((1, 0));
     }
 
-    let answer = first_numbers.iter().fold(0, |answer, number| {
-        answer + (number * map.get(number).unwrap_or(&0))
+    let answer = map.iter().fold(0, |answer, (number, (first, second))| {
+        answer + number * first * second
     });
     Ok(answer)
 }
