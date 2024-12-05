@@ -220,7 +220,7 @@ fn process_rules(rules: &mut HashMap<usize, BeforeAndAfter>, data1: usize, data2
         rules.insert(data1, BeforeAndAfter::new(befores, new_afters));
     }
 
-    // data 1 will be part of the befores for data 1 here:
+    // data 1 will be part of the befores for data 2 here:
     if let Some(BeforeAndAfter { befores, afters }) =
         rules.insert(data2, BeforeAndAfter::new_befores(data1))
     {
@@ -271,7 +271,7 @@ fn part2<R: BufRead>(reader: R) -> Result<usize> {
         if let Some(middle) = process_vector(&rules, &vector) {
             answer += middle;
         } else {
-            panic!("Failed to arrange Vectors")
+            panic!("Failed to arrange vector safely")
         }
     }
 
