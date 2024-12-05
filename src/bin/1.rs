@@ -70,7 +70,6 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
 
 fn part2<R: BufRead>(reader: R) -> Result<usize> {
     let mut map: HashMap<usize, usize> = HashMap::new();
-    let mut second_numbers: Vec<usize> = Vec::new();
     let mut first_numbers: Vec<usize> = Vec::new();
 
     for line in reader.lines() {
@@ -78,18 +77,10 @@ fn part2<R: BufRead>(reader: R) -> Result<usize> {
         let (first, second) = line.split_once(' ').unwrap();
         let (first, second): (usize, usize) = (first.parse()?, second.trim().parse()?);
 
-        map.insert(first, 0);
-        second_numbers.push(second);
+        map.entry(second)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
         first_numbers.push(first);
-    }
-
-    for num in second_numbers {
-        if map.contains_key(&num) {
-            if let Some(value) = map.insert(num, 0) {
-                map.insert(num, value + 1);
-                //println!("num: {num}, value: {}", value + 1);
-            }
-        }
     }
 
     let answer = first_numbers.iter().fold(0, |answer, number| {
