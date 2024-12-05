@@ -86,10 +86,7 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
     Ok(answer)
 }
 
-fn find_xmas(matrix: &Vec<Vec<char>>, row_num: usize, col_num: usize, mut buffer: String, direction: Direction) -> bool {
-    let no_subtract_row = row_num < 1;
-    let no_subtract_col = col_num < 1;
-
+fn find_xmas(matrix: &Vec<Vec<char>>, mut row_num: usize, mut col_num: usize, mut buffer: String, direction: Direction) -> bool {
     let Some(row) = matrix.get(row_num) else { return false; };
     let Some(char) = row.get(col_num) else { return false; };
     buffer.push(*char);
@@ -99,7 +96,6 @@ fn find_xmas(matrix: &Vec<Vec<char>>, row_num: usize, col_num: usize, mut buffer
     }
 
     if buffer.len() >= SEARCH_WORD.len() {
-        //dbg!(&buffer);
         if buffer == SEARCH_WORD { 
             return true;
         } else {
@@ -107,16 +103,25 @@ fn find_xmas(matrix: &Vec<Vec<char>>, row_num: usize, col_num: usize, mut buffer
         }
     }
 
-    match direction {
-        Direction::Up => !no_subtract_row && find_xmas(matrix, row_num-1, col_num, buffer.clone(), direction),
-        Direction::Down => find_xmas(matrix, row_num+1, col_num, buffer.clone(), direction),
-        Direction::Left => !no_subtract_col && find_xmas(matrix, row_num, col_num-1, buffer.clone(), direction),
-        Direction::Right => find_xmas(matrix, row_num, col_num+1, buffer.clone(), direction),
-        Direction::TopRight => !no_subtract_row && find_xmas(matrix, row_num-1, col_num+1, buffer.clone(), direction),
-        Direction::TopLeft => !no_subtract_row && !no_subtract_col && find_xmas(matrix, row_num-1, col_num-1, buffer.clone(), direction),
-        Direction::BottomRight => find_xmas(matrix, row_num+1, col_num+1, buffer.clone(), direction),
-        Direction::BottomLeft => !no_subtract_col && find_xmas(matrix, row_num+1, col_num-1, buffer.clone(), direction),
+    if let Direction::Left | Direction::BottomLeft | Direction::TopLeft = direction {
+        if col_num < 1 { return false }
     }
+    if let Direction::TopLeft | Direction::Up | Direction::TopRight = direction {
+        if row_num < 1 { return false }
+    }
+
+    match direction {
+        Direction::Up => {  row_num = row_num-1; }
+        Direction::Down => { row_num = row_num+1; }
+        Direction::Left => {  col_num = col_num-1; }
+        Direction::Right => { col_num = col_num+1; }
+        Direction::TopRight => {  row_num = row_num-1; col_num = col_num+1; }
+        Direction::TopLeft => {  row_num = row_num-1; col_num = col_num-1; }
+        Direction::BottomRight => { row_num = row_num+1; col_num = col_num+1; }
+        Direction::BottomLeft => {  row_num = row_num+1; col_num = col_num-1; }
+    };
+
+    find_xmas(matrix, row_num, col_num, buffer.clone(), direction)
 }
 
 fn part2<R: BufRead>(reader: R) -> Result<usize> {
