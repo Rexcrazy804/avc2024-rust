@@ -36,12 +36,12 @@ fn main() -> Result<()> {
     //endregion
 
     //region Part 2
-    //println!("\n=== Part 2 ===");
-    //assert_eq!(6, part2(BufReader::new(TEST.as_bytes()))?);
-    //println!("TEST PASSED");
-    //let input_file = BufReader::new(File::open(INPUT_FILE)?);
-    //let result = time_snippet!(part2(input_file)?);
-    //println!("Result = {}", result);
+    println!("\n=== Part 2 ===");
+    assert_eq!(11387, part2(BufReader::new(TEST.as_bytes()))?);
+    println!("TEST PASSED");
+    let input_file = BufReader::new(File::open(INPUT_FILE)?);
+    let result = time_snippet!(part2(input_file)?);
+    println!("Result = {}", result);
     //endregion
 
     Ok(())
@@ -57,7 +57,23 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
 
     let answer = equations
         .iter()
-        .filter_map(|x| x.calibrate())
+        .filter_map(|x| x.calibrate(1))
+        .fold(0, |acc, x| acc + x);
+
+    Ok(answer)
+}
+
+fn part2<R: BufRead>(reader: R) -> Result<usize> {
+    let mut equations: Vec<Equation> = Vec::new();
+
+    for line in reader.lines() {
+        let equation = Equation::parse(&line?)?;
+        equations.push(equation);
+    }
+
+    let answer = equations
+        .iter()
+        .filter_map(|x| x.calibrate(2))
         .fold(0, |acc, x| acc + x);
 
     Ok(answer)
@@ -72,6 +88,7 @@ struct Equation {
 enum Operators {
     Add,
     Multiply,
+    Concat,
 }
 
 impl Equation {
@@ -96,10 +113,22 @@ impl Equation {
         Ok(Self { target, operands })
     }
 
-    fn calibrate(&self) -> Option<usize> {
+    // thinking of using a tree like recursive algorithm
+    // for this function
+    fn calibrate(&self, part: usize) -> Option<usize> {
         let operator_count = self.operands.len() - 1;
 
-        let combinations = Self::get_operator_combinations(operator_count);
+        let combinations = if part == 1 {
+            Self::get_operator_combinations(
+                operator_count,
+                vec![Operators::Add, Operators::Multiply],
+            )
+        } else {
+            Self::get_operator_combinations(
+                operator_count,
+                vec![Operators::Add, Operators::Multiply, Operators::Concat],
+            )
+        };
 
         for combination in &combinations {
             let mut result = self.operands[0];
@@ -107,35 +136,42 @@ impl Equation {
                 match operator {
                     Operators::Add => result = result + self.operands[index + 1],
                     Operators::Multiply => result = result * self.operands[index + 1],
+                    Operators::Concat => {
+                        result = (result.to_string() + &self.operands[index + 1].to_string())
+                            .parse()
+                            .expect("invalid concatination");
+                    }
                 }
             }
 
             if result == self.target {
-                println!("Valid: {self}");
+                //println!("Valid: {self}");
                 return Some(self.target);
             }
         }
 
-        println!("Invalid: {self}");
+        //println!("Invalid: {self}");
         None
     }
 
-    fn get_operator_combinations(operator_count: usize) -> Vec<Vec<Operators>> {
+    fn get_operator_combinations(
+        operator_count: usize,
+        operator_vec: Vec<Operators>,
+    ) -> Vec<Vec<Operators>> {
         use itertools::Itertools;
-        let operators = [Operators::Add, Operators::Multiply];
         if operator_count == 1 {
-            return vec![vec![Operators::Add], vec![Operators::Multiply]];
+            return operator_vec.iter().map(|x| vec![x.to_owned()]).collect();
         }
 
         let combinations: Vec<Vec<Operators>> = (2..operator_count).fold(
-            operators
+            operator_vec
                 .iter()
-                .cartesian_product(operators.iter())
+                .cartesian_product(operator_vec.iter())
                 .map(|(&a, &b)| Vec::from([a, b]))
                 .collect(),
             |acc, _| {
                 acc.into_iter()
-                    .cartesian_product(operators.iter())
+                    .cartesian_product(operator_vec.iter())
                     .map(|(mut a, b)| {
                         a.push(*b);
                         a
@@ -157,8 +193,4 @@ impl Display for Equation {
         }
         std::result::Result::Ok(())
     }
-}
-
-fn part2<R: BufRead>(reader: R) -> Result<usize> {
-    todo!()
 }
