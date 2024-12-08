@@ -42,9 +42,9 @@ fn main() -> Result<()> {
     println!("\n=== Part 2 ===");
     assert_eq!(34, part2(BufReader::new(TEST.as_bytes()))?);
     println!("TEST PASSED");
-    //let input_file = BufReader::new(File::open(INPUT_FILE)?);
-    //let result = time_snippet!(part2(input_file)?);
-    //println!("Result = {}", result);
+    let input_file = BufReader::new(File::open(INPUT_FILE)?);
+    let result = time_snippet!(part2(input_file)?);
+    println!("Result = {}", result);
     //endregion
 
     Ok(())
@@ -82,7 +82,48 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
 }
 
 fn part2<R: BufRead>(reader: R) -> Result<usize> {
-    todo!()
+    let mut antena = Antena::default();
+
+    let mut map_clone: Vec<String> = Vec::new();
+    for (index, line) in reader.lines().enumerate() {
+        let line = line?;
+        antena.insert_antenas(&line, index);
+        map_clone.push(line);
+    }
+
+    //println!("{:?}", antena.antenas);
+    antena.collect_antinodes();
+
+    let answer = antena.antinodes.len();
+
+    for (index_row, line) in map_clone.iter().enumerate() {
+        for (index_col, char) in line.chars().enumerate() {
+            if antena.antinodes.contains(&(index_row, index_col)) {
+                print!("#");
+                continue;
+            }
+            print!("{}", char);
+        }
+        print!("\n");
+    }
+
+    //println!("{}", antena.index_limit);
+    let answer = answer
+        + antena.antenas.values().fold(0, |acc, set| {
+            if set.len() < 1 {
+                acc
+            } else {
+                let mut acc = acc;
+                for position in set {
+                    if !antena.antinodes.contains(position) {
+                        acc += 1
+                    }
+                }
+                acc
+            }
+        });
+
+    Ok(answer)
 }
 
 #[derive(Default)]
@@ -136,21 +177,44 @@ impl Antena {
         &self,
         position_1: &(usize, usize),
         position_2: &(usize, usize),
-    ) -> [Option<(usize, usize)>; 2] {
+    ) -> Vec<Option<(usize, usize)>> {
         let position_1 = (position_1.0 as isize, position_1.1 as isize);
 
         let position_2 = (position_2.0 as isize, position_2.1 as isize);
 
         let difference = (position_2.0 - position_1.0, position_2.1 - position_1.1);
 
-        let mirror_1 = (position_2.0 + difference.0, position_2.1 + difference.1);
+        //let mirror_1 = (position_2.0 + difference.0, position_2.1 + difference.1);
+        //let mirror_2 = (position_1.0 - difference.0, position_1.1 - difference.1);
 
-        let mirror_2 = (position_1.0 - difference.0, position_1.1 - difference.1);
+        let mut vector = Vec::new();
 
-        [
-            self.validate(mirror_1, difference),
-            self.validate(mirror_2, difference),
-        ]
+        // for first set of mirrors
+        let mut multiplier = 1;
+        while let Some(position) = self.validate(
+            (
+                position_2.0 + (multiplier * difference.0),
+                position_2.1 + (multiplier * difference.1),
+            ),
+            difference,
+        ) {
+            vector.push(Some(position));
+            multiplier += 1;
+        }
+
+        let mut multiplier = 1;
+        while let Some(position) = self.validate(
+            (
+                position_1.0 - (multiplier * difference.0),
+                position_1.1 - (multiplier * difference.1),
+            ),
+            difference,
+        ) {
+            vector.push(Some(position));
+            multiplier += 1;
+        }
+
+        vector
     }
 
     fn validate(&self, mirror: (isize, isize), diff: (isize, isize)) -> Option<(usize, usize)> {
