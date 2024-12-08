@@ -30,12 +30,12 @@ fn main() -> Result<()> {
     start_day(DAY);
 
     //region Part 1
-    //println!("=== Part 1 ===");
-    //assert_eq!(14, part1(BufReader::new(TEST.as_bytes()))?);
-    //println!("TEST PASSED");
-    //let input_file = BufReader::new(File::open(INPUT_FILE)?);
-    //let result = time_snippet!(part1(input_file)?);
-    //println!("Result = {}", result);
+    println!("=== Part 1 ===");
+    assert_eq!(14, part1(BufReader::new(TEST.as_bytes()))?);
+    println!("TEST PASSED");
+    let input_file = BufReader::new(File::open(INPUT_FILE)?);
+    let result = time_snippet!(part1(input_file)?);
+    println!("Result = {}", result);
     //endregion
 
     //region Part 2
@@ -52,6 +52,7 @@ fn main() -> Result<()> {
 
 fn part1<R: BufRead>(reader: R) -> Result<usize> {
     let mut antena = Antena::default();
+    antena.part = 1;
 
     let mut map_clone: Vec<String> = Vec::new();
     for (index, line) in reader.lines().enumerate() {
@@ -65,16 +66,16 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
 
     let answer = antena.antinodes.len();
 
-    for (index_row, line) in map_clone.iter().enumerate() {
-        for (index_col, char) in line.chars().enumerate() {
-            if antena.antinodes.contains(&(index_row, index_col)) {
-                print!("#");
-                continue;
-            }
-            print!("{}", char);
-        }
-        print!("\n");
-    }
+    //for (index_row, line) in map_clone.iter().enumerate() {
+    //    for (index_col, char) in line.chars().enumerate() {
+    //        if antena.antinodes.contains(&(index_row, index_col)) {
+    //            print!("#");
+    //            continue;
+    //        }
+    //        print!("{}", char);
+    //    }
+    //    print!("\n");
+    //}
 
     //println!("{}", antena.index_limit);
 
@@ -83,6 +84,7 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
 
 fn part2<R: BufRead>(reader: R) -> Result<usize> {
     let mut antena = Antena::default();
+    antena.part = 2;
 
     let mut map_clone: Vec<String> = Vec::new();
     for (index, line) in reader.lines().enumerate() {
@@ -96,16 +98,16 @@ fn part2<R: BufRead>(reader: R) -> Result<usize> {
 
     let answer = antena.antinodes.len();
 
-    for (index_row, line) in map_clone.iter().enumerate() {
-        for (index_col, char) in line.chars().enumerate() {
-            if antena.antinodes.contains(&(index_row, index_col)) {
-                print!("#");
-                continue;
-            }
-            print!("{}", char);
-        }
-        print!("\n");
-    }
+    //for (index_row, line) in map_clone.iter().enumerate() {
+    //    for (index_col, char) in line.chars().enumerate() {
+    //        if antena.antinodes.contains(&(index_row, index_col)) {
+    //            print!("#");
+    //            continue;
+    //        }
+    //        print!("{}", char);
+    //    }
+    //    print!("\n");
+    //}
 
     //println!("{}", antena.index_limit);
     let answer = answer
@@ -131,6 +133,7 @@ struct Antena {
     antenas: HashMap<char, HashSet<(usize, usize)>>,
     antinodes: HashSet<(usize, usize)>,
     index_limit: usize,
+    part: usize,
 }
 
 impl Antena {
@@ -162,7 +165,11 @@ impl Antena {
             let unique_pair_of_positions = iproduct!(positions.iter(), positions.iter()).unique();
 
             for (position_1, position_2) in unique_pair_of_positions {
-                let antinode_positions = self.get_valid_antinodes(position_1, position_2);
+                let antinode_positions = match self.part {
+                    1 => &self.get_valid_antinodes_1(position_1, position_2),
+                    2 => &self.get_valid_antinodes_2(position_1, position_2),
+                    _ => panic!("INVALID PART"),
+                };
 
                 antinode_positions.iter().for_each(|position| {
                     if let Some(position) = position {
@@ -173,7 +180,27 @@ impl Antena {
         }
     }
 
-    fn get_valid_antinodes(
+    fn get_valid_antinodes_1(
+        &self,
+        position_1: &(usize, usize),
+        position_2: &(usize, usize),
+    ) -> Vec<Option<(usize, usize)>> {
+        let position_1 = (position_1.0 as isize, position_1.1 as isize);
+
+        let position_2 = (position_2.0 as isize, position_2.1 as isize);
+
+        let difference = (position_2.0 - position_1.0, position_2.1 - position_1.1);
+
+        let mirror_1 = (position_2.0 + difference.0, position_2.1 + difference.1);
+        let mirror_2 = (position_1.0 - difference.0, position_1.1 - difference.1);
+
+        vec![
+            self.validate(mirror_1, difference),
+            self.validate(mirror_2, difference),
+        ]
+    }
+
+    fn get_valid_antinodes_2(
         &self,
         position_1: &(usize, usize),
         position_2: &(usize, usize),
