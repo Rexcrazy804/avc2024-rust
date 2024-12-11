@@ -35,12 +35,12 @@ fn main() -> Result<()> {
     //endregion
 
     //region Part 2
-    //println!("\n=== Part 2 ===");
-    //assert_eq!(2858, part2(BufReader::new(TEST.as_bytes()))?);
-    //println!("TEST PASSED");
-    //let input_file = BufReader::new(File::open(INPUT_FILE)?);
-    //let result = time_snippet!(part2(input_file)?);
-    //println!("Result = {}", result);
+    println!("\n=== Part 2 ===");
+    assert_eq!(81, part2(BufReader::new(TEST.as_bytes()))?);
+    println!("TEST PASSED");
+    let input_file = BufReader::new(File::open(INPUT_FILE)?);
+    let result = time_snippet!(part2(input_file)?);
+    println!("Result = {}", result);
     //endregion
 
     Ok(())
@@ -66,7 +66,7 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
     }
 
     let answer = trail_heads.iter_mut().fold(0, |answer, head| {
-        head.calculate_score(&map);
+        head.calculate(&map);
         answer + head.get_score()
     });
 
@@ -74,12 +74,36 @@ fn part1<R: BufRead>(reader: R) -> Result<usize> {
 }
 
 fn part2<R: BufRead>(reader: R) -> Result<usize> {
-    todo!()
+    let mut map: Vec<Vec<usize>> = Vec::new();
+    let mut trail_heads: Vec<TrailHead> = Vec::new();
+    for (row_index, line) in reader.lines().enumerate() {
+        let line = line?;
+        let row = line
+            .chars()
+            .enumerate()
+            .map(|(col_index, x)| {
+                let x = x.to_digit(10).expect("invalid digit") as usize;
+                if x == 0 {
+                    trail_heads.push(TrailHead::new((row_index, col_index)));
+                }
+                x
+            })
+            .collect_vec();
+        map.push(row);
+    }
+
+    let answer = trail_heads.iter_mut().fold(0, |answer, head| {
+        head.calculate(&map);
+        answer + head.get_rating()
+    });
+
+    Ok(answer)
 }
 
 struct TrailHead {
     head: (usize, usize),
     score: HashSet<(usize, usize)>,
+    rating: HashSet<Vec<(usize, usize)>>,
 }
 
 impl TrailHead {
@@ -87,6 +111,7 @@ impl TrailHead {
         TrailHead {
             head,
             score: HashSet::new(),
+            rating: HashSet::new(),
         }
     }
 
@@ -94,16 +119,28 @@ impl TrailHead {
         self.score.len()
     }
 
-    fn calculate_score(&mut self, map: &Vec<Vec<usize>>) {
-        self.hike(map, self.head);
+    fn get_rating(&self) -> usize {
+        //dbg!(&self.rating);
+        self.rating.len()
     }
 
-    fn hike(&mut self, map: &Vec<Vec<usize>>, position: (usize, usize)) {
+    fn calculate(&mut self, map: &Vec<Vec<usize>>) {
+        self.hike(map, self.head, vec![]);
+    }
+
+    fn hike(
+        &mut self,
+        map: &Vec<Vec<usize>>,
+        position: (usize, usize),
+        mut path: Vec<(usize, usize)>,
+    ) {
         let current_value = map[position.0][position.1];
+        path.push(position);
         //dbg!(current_value);
         //dbg!(position);
         if current_value == 9 {
             self.score.insert(position);
+            self.rating.insert(path);
             return;
         }
 
@@ -118,7 +155,7 @@ impl TrailHead {
                         continue;
                     }
                     //dbg!(next_position);
-                    self.hike(map, next_position);
+                    self.hike(map, next_position, path.clone());
                 }
                 Direction::Down => {
                     if position.0 == map.len() - 1 {
@@ -128,7 +165,7 @@ impl TrailHead {
                     if map[next_position.0][next_position.1] != current_value + 1 {
                         continue;
                     }
-                    self.hike(map, next_position);
+                    self.hike(map, next_position, path.clone());
                 }
                 Direction::Left => {
                     if position.1 == 0 {
@@ -138,7 +175,7 @@ impl TrailHead {
                     if map[next_position.0][next_position.1] != current_value + 1 {
                         continue;
                     }
-                    self.hike(map, next_position);
+                    self.hike(map, next_position, path.clone());
                 }
                 Direction::Right => {
                     if position.1 == map[0].len() - 1 {
@@ -148,7 +185,7 @@ impl TrailHead {
                     if map[next_position.0][next_position.1] != current_value + 1 {
                         continue;
                     }
-                    self.hike(map, next_position);
+                    self.hike(map, next_position, path.clone());
                 }
             }
         }
